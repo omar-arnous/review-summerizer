@@ -1,6 +1,6 @@
 import { reviewRepository } from '../repositories/review.repository';
 import { llmClient } from '../llm/client';
-import template from '../prompts/summarize-reviews.txt';
+import template from '../llm/prompts/summarize-reviews.txt';
 
 export const reviewService = {
   async summarizeReviews(productId: number): Promise<string> {
@@ -22,7 +22,7 @@ export const reviewService = {
     //   maxTokens: 500,
     // });
 
-    const summary = await llmClient.summarize(joinedReviews);
+    const summary = await llmClient.summarizeReviews(joinedReviews);
 
     await reviewRepository.storeReviewSummary(productId, summary);
 
