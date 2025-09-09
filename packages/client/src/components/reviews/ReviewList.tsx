@@ -1,9 +1,8 @@
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery } from '@tanstack/react-query';
 import axios from 'axios';
 import { HiSparkles } from 'react-icons/hi2';
 import StarRating from './StarRating';
 import { Button } from '../ui/button';
-import { useState } from 'react';
 import ReviewSkeleton from './ReviewSkeleton';
 
 type Props = {
@@ -28,9 +27,14 @@ type SummarizeResponse = {
 };
 
 const ReviewList = ({ productId }: Props) => {
-  const [summary, setSummary] = useState('');
-  const [isSummaryLoading, setIsSummaryLoading] = useState(false);
-  const [summaryError, setSummaryError] = useState('');
+  const {
+    mutate: handleSummarize,
+    isPending: isSummaryLoading,
+    isError: isSummaryError,
+    data: summarizeResponse,
+  } = useMutation<SummarizeResponse>({
+    mutationFn: () => summarizeReviews(),
+  });
 
   const {
     data: reviewData,
@@ -41,21 +45,12 @@ const ReviewList = ({ productId }: Props) => {
     queryFn: () => fetchReviews(),
   });
 
-  const handleSummarize = async () => {
-    try {
-      setIsSummaryLoading(true);
-      setSummaryError('');
+  const summarizeReviews = async () => {
+    const { data } = await axios.post<SummarizeResponse>(
+      `/api/products/${productId}/reviews/summarize`
+    );
 
-      const { data } = await axios.post<SummarizeResponse>(
-        `/api/products/${productId}/reviews/summarize`
-      );
-      setSummary(data.summary);
-    } catch (error) {
-      console.log(error);
-      setSummaryError('');
-    } finally {
-      setIsSummaryLoading(false);
-    }
+    return data;
   };
 
   const fetchReviews = async () => {
@@ -82,7 +77,7 @@ const ReviewList = ({ productId }: Props) => {
 
   if (!reviewData?.reviews.length) return null;
 
-  const currentSummary = reviewData.summary || summary;
+  const currentSummary = reviewData.summary || summarizeResponse?.summary;
 
   return (
     <div>
@@ -94,7 +89,7 @@ const ReviewList = ({ productId }: Props) => {
             <Button
               className="cursor-pointer"
               disabled={isSummaryLoading}
-              onClick={handleSummarize}
+              onClick={() => handleSummarize()}
             >
               <HiSparkles /> Summarize
             </Button>
@@ -103,7 +98,11 @@ const ReviewList = ({ productId }: Props) => {
                 <ReviewSkeleton />
               </div>
             )}
-            {summaryError && <p className="text-red-500">{summaryError}</p>}
+            {isSummaryError && (
+              <p className="text-red-500">
+                Could not summarize reviews, Try again!
+              </p>
+            )}
           </div>
         )}
       </div>
